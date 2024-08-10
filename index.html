@@ -8,21 +8,22 @@
         body {
             margin: 0;
             overflow: hidden;
+            background-color: #f0f0f0;
         }
         #scoreBoard {
             position: absolute;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             font-size: 24px;
             color: black;
-            z-index: 10; /* Ensure it's above the canvas */
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <script src="paint-fight.js"></script>
+    <div id="scoreBoard">Red: 0% Blue: 0%</div>
+    <script src="game.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ coverageCanvas.style.position = 'absolute';
 coverageCanvas.style.top = '0';
 coverageCanvas.style.left = '0';
 coverageCanvas.style.pointerEvents = 'none'; // Prevent interactions with the coverage canvas
+const scoreBoard = document.getElementById('scoreBoard');
 
 // Player class
 class Player {
@@ -20,6 +21,7 @@ class Player {
         this.x = x;
         this.y = y;
         this.color = color;
+        this.originalColor = color;
         this.radius = 20;
         this.speed = 5;
         this.direction = { x: 0, y: 0 };
@@ -57,15 +59,17 @@ class Player {
             this.powerUpTime--;
             if (this.powerUpTime <= 0) {
                 this.color = this.originalColor;
+                this.speed = 5; // Reset speed after power-up ends
             }
         }
     }
 
-    activatePowerUp(color, duration) {
+    activatePowerUp(color, duration, speedBoost = 0) {
         this.powerUpColor = color;
         this.powerUpTime = duration;
         this.originalColor = this.color;
         this.color = color;
+        this.speed += speedBoost;
     }
 }
 
@@ -75,10 +79,11 @@ const player2 = new Player(canvas.width - 100, canvas.height / 2, 'blue');
 
 // Power-up class
 class PowerUp {
-    constructor(x, y, color) {
+    constructor(x, y, color, speedBoost = 0) {
         this.x = x;
         this.y = y;
         this.color = color;
+        this.speedBoost = speedBoost;
         this.radius = 10;
     }
 
@@ -97,8 +102,33 @@ class PowerUp {
 
 // Create power-ups
 const powerUps = [
-    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'green'),
-    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'yellow')
+    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'green', 2),
+    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'yellow', 2)
+];
+
+// Obstacle class
+class Obstacle {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    draw() {
+        ctx.fillStyle = 'grey';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+
+    update() {
+        this.draw();
+    }
+}
+
+// Create obstacles
+const obstacles = [
+    new Obstacle(canvas.width / 4, canvas.height / 4, 50, 50),
+    new Obstacle(canvas.width / 2, canvas.height / 2, 100, 100)
 ];
 
 // Handle player movement
@@ -206,10 +236,10 @@ function checkPowerUps() {
         const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
 
         if (distance1 < player1.radius + powerUp.radius) {
-            player1.activatePowerUp(powerUp.color, 100); // 100 frames of power-up
+            player1.activatePowerUp(powerUp.color, 100, powerUp.speedBoost); // 100 frames of power-up
             powerUps.splice(index, 1);
         } else if (distance2 < player2.radius + powerUp.radius) {
-            player2.activatePowerUp(powerUp.color, 100); // 100 frames of power-up
+            player2.activatePowerUp(powerUp.color, 100, powerUp.speedBoost);
             powerUps.splice(index, 1);
         }
     });
@@ -218,9 +248,11 @@ function checkPowerUps() {
 // Game loop
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    coverageCtx.clearRect(0, 0, canvas.width, canvas.height);
     player1.update();
     player2.update();
     powerUps.forEach(powerUp => powerUp.update());
+    obstacles.forEach(obstacle => obstacle.update());
     checkPowerUps();
     updateScoreboard();
     updateTimer();
@@ -228,3 +260,4 @@ function gameLoop() {
 }
 
 gameLoop();
+setInterval(updateTimer, 1000);
