@@ -23,6 +23,8 @@ class Player {
         this.radius = 20;
         this.speed = 5;
         this.direction = { x: 0, y: 0 };
+        this.powerUpTime = 0;
+        this.powerUpColor = null;
     }
 
     move() {
@@ -51,12 +53,53 @@ class Player {
     update() {
         this.move();
         this.draw();
+        if (this.powerUpTime > 0) {
+            this.powerUpTime--;
+            if (this.powerUpTime <= 0) {
+                this.color = this.originalColor;
+            }
+        }
+    }
+
+    activatePowerUp(color, duration) {
+        this.powerUpColor = color;
+        this.powerUpTime = duration;
+        this.originalColor = this.color;
+        this.color = color;
     }
 }
 
 // Create players
 const player1 = new Player(100, canvas.height / 2, 'red');
 const player2 = new Player(canvas.width - 100, canvas.height / 2, 'blue');
+
+// Power-up class
+class PowerUp {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = 10;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    update() {
+        this.draw();
+    }
+}
+
+// Create power-ups
+const powerUps = [
+    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'green'),
+    new PowerUp(Math.random() * canvas.width, Math.random() * canvas.height, 'yellow')
+];
 
 // Handle player movement
 window.addEventListener('keydown', e => {
@@ -80,6 +123,17 @@ window.addEventListener('keyup', e => {
         case 'ArrowLeft': case 'ArrowRight': player2.direction.x = 0; break;
     }
 });
+
+// Timer
+let timeRemaining = 60; // 60 seconds
+const timerElement = document.createElement('div');
+timerElement.style.position = 'absolute';
+timerElement.style.top = '10px';
+timerElement.style.right = '10px';
+timerElement.style.fontFamily = 'Arial, sans-serif';
+timerElement.style.fontSize = '24px';
+timerElement.style.color = 'black';
+document.body.appendChild(timerElement);
 
 // Function to calculate the percentage coverage
 function calculateCoverage() {
@@ -113,15 +167,52 @@ function calculateCoverage() {
 }
 
 // Function to draw the score
-function drawScore() {
+function updateScoreboard() {
     const { red, blue } = calculateCoverage();
+    scoreBoard.textContent = `Red: ${red.toFixed(2)}% Blue: ${blue.toFixed(2)}%`;
+}
+
+// Function to update the timer
+function updateTimer() {
+    timeRemaining--;
+    if (timeRemaining <= 0) {
+        gameOver();
+    }
+    timerElement.textContent = `Time: ${timeRemaining}s`;
+}
+
+// Game Over Screen
+function gameOver() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'black';
-    ctx.font = '24px Arial';
+    ctx.font = '48px Arial';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.clearRect(0, 0, canvas.width, 50); // Clear previous score
-    ctx.fillText(`Red: ${red.toFixed(2)}%`, canvas.width / 4, 10);
-    ctx.fillText(`Blue: ${blue.toFixed(2)}%`, 3 * canvas.width / 4, 10);
+    ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 50);
+    const { red, blue } = calculateCoverage();
+    ctx.font = '24px Arial';
+    ctx.fillText(`Red: ${red.toFixed(2)}%`, canvas.width / 2, canvas.height / 2);
+    ctx.fillText(`Blue: ${blue.toFixed(2)}%`, canvas.width / 2, canvas.height / 2 + 30);
+}
+
+// Check for power-up collection
+function checkPowerUps() {
+    powerUps.forEach((powerUp, index) => {
+        const dx1 = player1.x - powerUp.x;
+        const dy1 = player1.y - powerUp.y;
+        const distance1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+
+        const dx2 = player2.x - powerUp.x;
+        const dy2 = player2.y - powerUp.y;
+        const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+
+        if (distance1 < player1.radius + powerUp.radius) {
+            player1.activatePowerUp(powerUp.color, 100); // 100 frames of power-up
+            powerUps.splice(index, 1);
+        } else if (distance2 < player2.radius + powerUp.radius) {
+            player2.activatePowerUp(powerUp.color, 100); // 100 frames of power-up
+            powerUps.splice(index, 1);
+        }
+    });
 }
 
 // Game loop
@@ -129,7 +220,10 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     player1.update();
     player2.update();
-    drawScore();
+    powerUps.forEach(powerUp => powerUp.update());
+    checkPowerUps();
+    updateScoreboard();
+    updateTimer();
     requestAnimationFrame(gameLoop);
 }
 
